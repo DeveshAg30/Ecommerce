@@ -35,7 +35,7 @@ A full-featured e-commerce website built with Node.js, Express, and MongoDB.
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/DeveshAg30/Ecommerce.git
 cd ecommerce
 ```
 
@@ -124,4 +124,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Bootstrap for the UI components
 - MongoDB for the database
-- Express.js team for the amazing framework 
+- Express.js team for the amazing framework
