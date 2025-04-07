@@ -1,18 +1,15 @@
 // Check authentication status
 async function checkAuth() {
     try {
-        const response = await fetch('/api/auth/me', {
-            credentials: 'include'
+        const response = await $.ajax({
+            url: '/api/auth/me',
+            xhrFields: {
+                withCredentials: true
+            }
         });
         
-        if (response.ok) {
-            const user = await response.json();
-            updateNavForLoggedInUser(user);
-            return user;
-        } else {
-            updateNavForLoggedOutUser();
-            return null;
-        }
+        updateNavForLoggedInUser(response);
+        return response;
     } catch (error) {
         console.error('Error checking auth status:', error);
         updateNavForLoggedOutUser();
@@ -22,54 +19,48 @@ async function checkAuth() {
 
 // Update navigation based on auth status
 function updateNavForLoggedInUser(user) {
-    document.getElementById('login-nav').style.display = 'none';
-    document.getElementById('register-nav').style.display = 'none';
-    document.getElementById('logout-nav').style.display = 'block';
+    $('#login-nav, #register-nav').hide();
+    $('#logout-nav').show();
     
     if (user.role === 'admin') {
-        const adminLink = document.createElement('li');
-        adminLink.className = 'nav-item';
-        adminLink.innerHTML = '<a class="nav-link" href="/admin.html">Admin</a>';
-        document.querySelector('.navbar-nav').insertBefore(adminLink, document.getElementById('logout-nav'));
+        const adminLink = $('<li>', { class: 'nav-item' })
+            .append($('<a>', { 
+                class: 'nav-link',
+                href: '/admin.html',
+                text: 'Admin'
+            }));
+        $('.navbar-nav').prepend(adminLink);
     }
 }
 
 function updateNavForLoggedOutUser() {
-    document.getElementById('login-nav').style.display = 'block';
-    document.getElementById('register-nav').style.display = 'block';
-    document.getElementById('logout-nav').style.display = 'none';
+    $('#login-nav, #register-nav').show();
+    $('#logout-nav').hide();
     
-    const adminLink = document.querySelector('.nav-item a[href="/admin.html"]');
-    if (adminLink) {
-        adminLink.parentElement.remove();
-    }
+    $('.nav-item a[href="/admin.html"]').parent().remove();
 }
 
 // Handle login
 async function handleLogin(event) {
     event.preventDefault();
     
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+    const email = $('#email').val();
+    const password = $('#password').val();
     
     try {
-        const response = await fetch('/api/auth/login', {
+        const response = await $.ajax({
+            url: '/api/auth/login',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password }),
-            credentials: 'include'
+            contentType: 'application/json',
+            data: JSON.stringify({ email, password }),
+            xhrFields: {
+                withCredentials: true
+            }
         });
         
-        if (response.ok) {
-            window.location.href = '/';
-        } else {
-            const data = await response.json();
-            showAlert(data.message, 'danger');
-        }
+        window.location.href = '/';
     } catch (error) {
-        showAlert('Error logging in', 'danger');
+        showAlert(error.responseJSON?.message || 'Error logging in', 'danger');
     }
 }
 
@@ -98,23 +89,23 @@ function updatePasswordFeedback(validations) {
         'special-check': validations.special
     };
 
-    for (const [id, isValid] of Object.entries(checks)) {
-        const element = document.getElementById(id);
-        if (element) {
-            element.style.color = isValid ? 'green' : 'red';
-            element.innerHTML = `${isValid ? '✓' : '✗'} ${element.innerHTML.replace(/[✓✗] /, '')}`;
+    $.each(checks, (id, isValid) => {
+        const $element = $(`#${id}`);
+        if ($element.length) {
+            $element.css('color', isValid ? 'green' : 'red')
+                .html(`${isValid ? '✓' : '✗'} ${$element.html().replace(/[✓✗] /, '')}`);
         }
-    }
+    });
 }
 
 // Handle registration
 async function handleRegister(event) {
     event.preventDefault();
     
-    const username = document.getElementById('username').value;
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
+    const username = $('#username').val();
+    const email = $('#email').val();
+    const password = $('#password').val();
+    const confirmPassword = $('#confirmPassword').val();
     
     // Validate password
     const { isValid, validations } = validatePassword(password);
@@ -131,37 +122,34 @@ async function handleRegister(event) {
     }
     
     try {
-        const response = await fetch('/api/auth/register', {
+        const response = await $.ajax({
+            url: '/api/auth/register',
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, email, password }),
-            credentials: 'include'
+            contentType: 'application/json',
+            data: JSON.stringify({ username, email, password }),
+            xhrFields: {
+                withCredentials: true
+            }
         });
         
-        if (response.ok) {
-            window.location.href = '/';
-        } else {
-            const data = await response.json();
-            showAlert(data.message, 'danger');
-        }
+        window.location.href = '/';
     } catch (error) {
-        showAlert('Error registering', 'danger');
+        showAlert(error.responseJSON?.message || 'Error registering', 'danger');
     }
 }
 
 // Handle logout
 async function handleLogout() {
     try {
-        const response = await fetch('/api/auth/logout', {
+        const response = await $.ajax({
+            url: '/api/auth/logout',
             method: 'POST',
-            credentials: 'include'
+            xhrFields: {
+                withCredentials: true
+            }
         });
         
-        if (response.ok) {
-            window.location.href = '/';
-        }
+        window.location.href = '/';
     } catch (error) {
         showAlert('Error logging out', 'danger');
     }
@@ -169,49 +157,36 @@ async function handleLogout() {
 
 // Show alert message
 function showAlert(message, type = 'info') {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+    const $alertDiv = $('<div>', {
+        class: `alert alert-${type} alert-dismissible fade show`,
+        html: `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `
+    });
     
-    const container = document.querySelector('.container');
-    container.insertBefore(alertDiv, container.firstChild);
+    $('.container').prepend($alertDiv);
     
     setTimeout(() => {
-        alertDiv.remove();
+        $alertDiv.remove();
     }, 5000);
 }
 
 // Add event listeners
-document.addEventListener('DOMContentLoaded', () => {
+$(document).ready(() => {
     checkAuth();
     
-    const loginForm = document.getElementById('login-form');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
-    }
+    $('#login-form').on('submit', handleLogin);
+    $('#register-form').on('submit', handleRegister);
     
-    const registerForm = document.getElementById('register-form');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
-        
-        // Add real-time password validation
-        const passwordInput = document.getElementById('password');
-        if (passwordInput) {
-            passwordInput.addEventListener('input', (e) => {
-                const { validations } = validatePassword(e.target.value);
-                updatePasswordFeedback(validations);
-            });
-        }
-    }
+    // Add real-time password validation
+    $('#password').on('input', function() {
+        const { validations } = validatePassword($(this).val());
+        updatePasswordFeedback(validations);
+    });
     
-    const logoutLink = document.getElementById('logout-link');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleLogout();
-        });
-    }
+    $('#logout-link').on('click', function(e) {
+        e.preventDefault();
+        handleLogout();
+    });
 }); 
